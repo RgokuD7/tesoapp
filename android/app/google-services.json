@@ -1,0 +1,90 @@
+{
+  "project_info": {
+    "project_number": "478998143094",
+    "project_id": "tesoapp-be9bc",
+    "storage_bucket": "tesoapp-be9bc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:478998143094:android:dd4d8699480f0d801a3f57",
+        "android_client_info": {
+          "package_name": "cl.richardbouryssieres.tesoapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "478998143094-bjjrphhkqtch8f8r6j9nl0h0cle6e3o7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "cl.richardbouryssieres.tesoapp",
+            "certificate_hash": "983ebc16569eb94f7a03e40ae24c793617eeda8c"
+          }
+        },
+        {
+          "client_id": "478998143094-cvhhshd54qs3gr8fv6rg4hqji4ql6rg8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC61hZ_LigPXQdPVdwqV0GSIqdcLGJbtDY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "478998143094-cvhhshd54qs3gr8fv6rg4hqji4ql6rg8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "478998143094-mvtfe4o3fja27i04ubg886gkulo6l1vj.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "cl.richardbouryssieres.tesoapp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:478998143094:android:a4b1c4e753618d9c1a3f57",
+        "android_client_info": {
+          "package_name": "com.example.tesoapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "478998143094-cvhhshd54qs3gr8fv6rg4hqji4ql6rg8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC61hZ_LigPXQdPVdwqV0GSIqdcLGJbtDY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "478998143094-cvhhshd54qs3gr8fv6rg4hqji4ql6rg8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "478998143094-mvtfe4o3fja27i04ubg886gkulo6l1vj.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "cl.richardbouryssieres.tesoapp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
