@@ -35,69 +35,14 @@ class HomePage extends StatelessWidget {
             const SizedBox(height: 15),
             Center(
               child: Column(
-                mainAxisSize:
-                    MainAxisSize.min, // la columna ocupa solo lo necesario
-                crossAxisAlignment: CrossAxisAlignment
-                    .start, // alinea las filas por la izquierda
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: const [
-                      Icon(
-                        Icons.auto_awesome,
-                        color: Color.fromRGBO(16, 185, 119, 1),
-                      ),
-                      SizedBox(width: 8),
-                      // Si quieres que el texto haga wrap y no crezca demasiado:
-                      // ConstrainedBox(constrains: BoxConstraints(maxWidth: 300), child: Text(...))
-                      Text(
-                        'Control total de ingresos y gastos',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Color.fromRGBO(100, 116, 139, 1),
-                        ),
-                      ),
-                    ],
+                  buildFeatureRow(text: 'Control total de ingresos y gastos'),
+                  buildFeatureRow(
+                    text: 'Transparencia para todos los miembros',
                   ),
-                  SizedBox(height: 8),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: const [
-                      Icon(
-                        Icons.auto_awesome,
-                        color: Color.fromRGBO(16, 185, 119, 1),
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        'Transparencia para todos los miembros',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Color.fromRGBO(100, 116, 139, 1),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: const [
-                      Icon(
-                        Icons.auto_awesome,
-                        color: Color.fromRGBO(16, 185, 119, 1),
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        'Reportes y gráficos en tiempo real',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Color.fromRGBO(100, 116, 139, 1),
-                        ),
-                      ),
-                    ],
-                  ),
+                  buildFeatureRow(text: 'Reportes y gráficos en tiempo real'),
                 ],
               ),
             ),
@@ -153,6 +98,34 @@ class HomePage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget buildFeatureRow({
+    required String text,
+    IconData icon = Icons.auto_awesome,
+    Color iconColor = const Color.fromRGBO(16, 185, 119, 1),
+    Color textColor = const Color.fromRGBO(100, 116, 139, 1),
+    double fontSize = 16,
+    double spacing = 8,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: spacing),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: iconColor),
+          SizedBox(width: spacing),
+          // Flexible permite que el texto haga wrap en pantallas pequeñas
+          Flexible(
+            child: Text(
+              text,
+              style: TextStyle(fontSize: fontSize, color: textColor),
+              softWrap: true,
+            ),
+          ),
+        ],
       ),
     );
   }
