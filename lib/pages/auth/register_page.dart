@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/label_text_field.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -195,7 +196,7 @@ class _RegisterPageState extends State<RegisterPage>
                         child: Column(
                           children: [
                             if (_currentStep == 0) ...[
-                              _buildLabeledTextField(
+                              LabeledTextField(
                                 label: 'Nombre',
                                 hint: 'Tu nombre completo',
                                 controller: _nameController,
@@ -204,7 +205,7 @@ class _RegisterPageState extends State<RegisterPage>
                                     ? 'Por favor ingresa tu nombre'
                                     : null,
                               ),
-                              _buildLabeledTextField(
+                              LabeledTextField(
                                 label: 'Apellidos',
                                 hint: 'Tus apellidos',
                                 controller: _lastnameController,
@@ -213,7 +214,7 @@ class _RegisterPageState extends State<RegisterPage>
                                     ? 'Por favor ingresa tu apellido'
                                     : null,
                               ),
-                              _buildLabeledTextField(
+                              LabeledTextField(
                                 label: 'Correo electrónico',
                                 hint: 'ejemplo@correo.com',
                                 controller: _emailController,
@@ -231,7 +232,7 @@ class _RegisterPageState extends State<RegisterPage>
                                   return null;
                                 },
                               ),
-                              _buildLabeledTextField(
+                              LabeledTextField(
                                 label: 'Teléfono (opcional)',
                                 hint: '+56 9 1234 5678',
                                 controller: _phoneController,
@@ -239,12 +240,12 @@ class _RegisterPageState extends State<RegisterPage>
                                 keyboardType: TextInputType.phone,
                               ),
                             ] else if (_currentStep == 1) ...[
-                              _buildLabeledTextField(
+                              LabeledTextField(
                                 label: 'Contraseña',
                                 hint: 'Ingresa tu contraseña',
                                 controller: _passwordController,
                                 icon: Icon(Icons.lock_outlined),
-                                obscureText: true,
+                                isPassword: true,
                                 validator: (v) {
                                   if (v == null || v.isEmpty) {
                                     return 'Por favor ingresa una contraseña';
@@ -255,12 +256,12 @@ class _RegisterPageState extends State<RegisterPage>
                                   return null;
                                 },
                               ),
-                              _buildLabeledTextField(
+                              LabeledTextField(
                                 label: 'Confirmar contraseña',
                                 hint: 'Repite la contraseña',
                                 controller: _confirmPasswordController,
                                 icon: Icon(Icons.lock_outlined),
-                                obscureText: true,
+                                isPassword: true,
                                 validator: (v) {
                                   if (v == null || v.isEmpty) {
                                     return 'Confirma tu contraseña';
@@ -450,153 +451,6 @@ class _RegisterPageState extends State<RegisterPage>
                     ],
                   ),
                 ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRoleSelector() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: const BorderRadius.all(Radius.circular(12)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: OutlinedButton(
-              style: _roleButtonStyle(selectedIndex == 0),
-              onPressed: () => setState(() => selectedIndex = 0),
-              child: const Text(
-                '👑 Administrador',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-          Expanded(
-            child: OutlinedButton(
-              style: _roleButtonStyle(selectedIndex == 1),
-              onPressed: () => setState(() => selectedIndex = 1),
-              child: const Text(
-                '👥 Miembro',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  ButtonStyle _roleButtonStyle(bool selected) {
-    return OutlinedButton.styleFrom(
-      backgroundColor: selected
-          ? Theme.of(context).colorScheme.primary
-          : Colors.grey.shade100,
-      foregroundColor: selected ? Colors.white : Colors.black,
-      side: BorderSide(
-        color: selected
-            ? Theme.of(context).colorScheme.primary
-            : Colors.grey.shade100,
-      ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      padding: const EdgeInsets.symmetric(vertical: 17),
-    );
-  }
-
-  Widget _buildStepper() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: const BorderRadius.all(Radius.circular(12)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: OutlinedButton(
-              style: _roleButtonStyle(selectedIndex == 0),
-              onPressed: () => setState(() => selectedIndex = 0),
-              child: const Text(
-                '👑 Administrador',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-          Expanded(
-            child: OutlinedButton(
-              style: _roleButtonStyle(selectedIndex == 1),
-              onPressed: () => setState(() => selectedIndex = 1),
-              child: const Text(
-                '👥 Miembro',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLabeledTextField({
-    required String label,
-    required String hint,
-    required TextEditingController controller,
-    TextInputType keyboardType = TextInputType.text,
-    bool obscureText = false,
-    Icon? icon,
-    String? Function(String?)? validator,
-    int maxLines = 1,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-              color: Color.fromRGBO(55, 65, 81, 1),
-            ),
-          ),
-          const SizedBox(height: 4),
-          TextFormField(
-            controller: controller,
-            keyboardType: keyboardType,
-            obscureText: obscureText,
-            validator: validator,
-            maxLines: maxLines,
-            decoration: InputDecoration(
-              prefixIcon: icon,
-              prefixIconColor:
-                  WidgetStateColor.fromMap(<WidgetStatesConstraint, Color>{
-                    WidgetState.focused: Theme.of(context).colorScheme.primary,
-                    WidgetState.any: Color.fromRGBO(100, 116, 139, 1),
-                    WidgetState.disabled: Colors.grey,
-                    WidgetState.error: Colors.red,
-                  }),
-              filled: true, // Activa el color de fondo
-              fillColor: Colors.grey.shade100, // Color de fondo
-              hintText: hint,
-              hintStyle: TextStyle(color: Color.fromRGBO(148, 163, 184, 1)),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-                borderSide: BorderSide(
-                  width: 1,
-                  color: Color.fromRGBO(203, 213, 225, 1),
-                  style: BorderStyle.solid,
-                ),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 14,
               ),
             ),
           ),

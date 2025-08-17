@@ -3,9 +3,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 import 'package:google_fonts/google_fonts.dart';
-import 'pages/home_page.dart';
-import 'pages/login_page.dart';
-import 'pages/register_page.dart';
+import 'pages/auth/auth_page.dart';
+import 'pages/auth/login_page.dart';
+import 'pages/auth/register_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,7 +15,6 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -29,8 +28,8 @@ class MyApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/': (context) => const HomePage(),
-        '/login': (context) => const HomePage(),
+        '/': (context) => const AuthPage(),
+        '/login': (context) => const LoginPage(),
         '/register': (context) => const RegisterPage(),
       },
     );
