@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import '../../widgets/label_text_field.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../widgets/custom_loader.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+class RoleSelectionPage extends StatefulWidget {
+  const RoleSelectionPage({super.key});
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  State<RoleSelectionPage> createState() => _RoleSelectionPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage>
+class _RoleSelectionPageState extends State<RoleSelectionPage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<Offset> _offsetAnimation;
@@ -141,31 +142,18 @@ class _RegisterPageState extends State<RegisterPage>
                   horizontal: 20,
                   vertical: 10,
                 ),
-                child: Row(
-                  children: [
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        shape: const CircleBorder(),
-                        padding: const EdgeInsets.all(20),
-                        backgroundColor: Colors.white,
-                      ),
-                      child: const Icon(Icons.arrow_back, color: Colors.black),
-                    ),
-                  ],
-                ),
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 25),
                 child: Text(
-                  'Crear Cuenta',
+                  '¿Cuál es tu rol?',
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
                 ),
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 25, vertical: 5),
                 child: Text(
-                  'Únete a la gestión transparente de fondos grupales',
+                  'Selecciona cómo participarás en el grupo',
                   style: TextStyle(
                     fontSize: 16,
                     color: Color.fromRGBO(100, 116, 139, 1),
@@ -229,72 +217,30 @@ class _RegisterPageState extends State<RegisterPage>
                             }),
                           ),
                           const SizedBox(height: 10),
-                          Text(
-                            _currentStep == 0
-                                ? 'Datos Personales'
-                                : 'Seguridad',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            _currentStep == 0
-                                ? 'Cuéntanos un poco sobre ti'
-                                : 'Crea una contraseña segura',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Color.fromRGBO(100, 116, 139, 1),
-                            ),
-                          ),
-                          const SizedBox(height: 15),
                           Form(
                             key: _formKey,
                             child: Column(
                               children: [
                                 if (_currentStep == 0) ...[
-                                  LabeledTextField(
-                                    label: 'Nombre',
-                                    hint: 'Tu nombre completo',
-                                    controller: _nameController,
-                                    icon: const Icon(Icons.person_outlined),
-                                    validator: (v) => v == null || v.isEmpty
-                                        ? 'Por favor ingresa tu nombre'
-                                        : null,
-                                  ),
-                                  LabeledTextField(
-                                    label: 'Apellidos',
-                                    hint: 'Tus apellidos',
-                                    controller: _lastnameController,
-                                    icon: const Icon(Icons.person_outlined),
-                                    validator: (v) => v == null || v.isEmpty
-                                        ? 'Por favor ingresa tu apellido'
-                                        : null,
-                                  ),
-                                  LabeledTextField(
-                                    label: 'Correo electrónico',
-                                    hint: 'ejemplo@correo.com',
-                                    controller: _emailController,
-                                    icon: Icon(Icons.email_outlined),
-                                    keyboardType: TextInputType.emailAddress,
-                                    validator: (v) {
-                                      if (v == null || v.isEmpty) {
-                                        return 'Por favor ingresa tu correo';
-                                      }
-                                      if (!RegExp(
-                                        r'^[\w-.]+@([\w-]+\.)+[\w]{2,4}$',
-                                      ).hasMatch(v)) {
-                                        return 'Correo inválido';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                  LabeledTextField(
-                                    label: 'Teléfono (opcional)',
-                                    hint: '+56 9 1234 5678',
-                                    controller: _phoneController,
-                                    icon: Icon(Icons.phone_outlined),
-                                    keyboardType: TextInputType.phone,
+                                  Container(
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Color(0xFFE2E8F0),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        CircleAvatar(
+                                          backgroundColor: const Color(
+                                            0xFFF1F5F9,
+                                          ),
+                                          child: FaIcon(FontAwesomeIcons.crown),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ] else if (_currentStep == 1) ...[
                                   LabeledTextField(

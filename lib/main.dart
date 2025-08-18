@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 import 'package:google_fonts/google_fonts.dart';
+import 'pages/auth/auth_gate.dart';
 import 'pages/auth/auth_page.dart';
 import 'pages/auth/login_page.dart';
 import 'pages/auth/register_page.dart';
@@ -26,9 +27,8 @@ class MyApp extends StatelessWidget {
           primary: const Color.fromRGBO(37, 99, 235, 1),
         ),
       ),
-      initialRoute: '/',
+      home: const AuthGate(),
       routes: {
-        '/': (context) => const AuthPage(),
         '/login': (context) => const LoginPage(),
         '/register': (context) => const RegisterPage(),
       },
