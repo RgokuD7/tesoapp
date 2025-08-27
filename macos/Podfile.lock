@@ -1205,9 +1205,10 @@ PODS:
     - BoringSSL-GRPC/Interface (= 0.0.37)
   - BoringSSL-GRPC/Interface (0.0.37)
   - cloud_firestore (6.0.0):
-    - Firebase/Firestore (= 12.0.0)
+    - Firebase/CoreOnly (~> 12.0.0)
+    - Firebase/Firestore (~> 12.0.0)
     - firebase_core
-    - Flutter
+    - FlutterMacOS
   - Firebase/Auth (12.0.0):
     - Firebase/CoreOnly
     - FirebaseAuth (~> 12.0.0)
@@ -1217,12 +1218,13 @@ PODS:
     - Firebase/CoreOnly
     - FirebaseFirestore (~> 12.0.0)
   - firebase_auth (6.0.1):
-    - Firebase/Auth (= 12.0.0)
+    - Firebase/Auth (~> 12.0.0)
+    - Firebase/CoreOnly (~> 12.0.0)
     - firebase_core
-    - Flutter
+    - FlutterMacOS
   - firebase_core (4.0.0):
-    - Firebase/CoreOnly (= 12.0.0)
-    - Flutter
+    - Firebase/CoreOnly (~> 12.0.0)
+    - FlutterMacOS
   - FirebaseAppCheckInterop (12.0.0)
   - FirebaseAuth (12.0.0):
     - FirebaseAppCheckInterop (~> 12.0.0)
@@ -1263,7 +1265,7 @@ PODS:
     - leveldb-library (~> 1.22)
     - nanopb (~> 3.30910.0)
   - FirebaseSharedSwift (12.0.0)
-  - Flutter (1.0.0)
+  - FlutterMacOS (1.0.0)
   - google_sign_in_ios (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -1408,15 +1410,14 @@ PODS:
     - Flutter
     - FlutterMacOS
   - PromisesObjC (2.4.0)
-  - RecaptchaInterop (101.0.0)
 
 DEPENDENCIES:
-  - cloud_firestore (from `.symlinks/plugins/cloud_firestore/ios`)
-  - firebase_auth (from `.symlinks/plugins/firebase_auth/ios`)
-  - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
-  - Flutter (from `Flutter`)
-  - google_sign_in_ios (from `.symlinks/plugins/google_sign_in_ios/darwin`)
-  - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
+  - cloud_firestore (from `Flutter/ephemeral/.symlinks/plugins/cloud_firestore/macos`)
+  - firebase_auth (from `Flutter/ephemeral/.symlinks/plugins/firebase_auth/macos`)
+  - firebase_core (from `Flutter/ephemeral/.symlinks/plugins/firebase_core/macos`)
+  - FlutterMacOS (from `Flutter/ephemeral`)
+  - google_sign_in_ios (from `Flutter/ephemeral/.symlinks/plugins/google_sign_in_ios/darwin`)
+  - path_provider_foundation (from `Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin`)
 
 SPEC REPOS:
   trunk:
@@ -1443,31 +1444,30 @@ SPEC REPOS:
     - leveldb-library
     - nanopb
     - PromisesObjC
-    - RecaptchaInterop
 
 EXTERNAL SOURCES:
   cloud_firestore:
-    :path: ".symlinks/plugins/cloud_firestore/ios"
+    :path: Flutter/ephemeral/.symlinks/plugins/cloud_firestore/macos
   firebase_auth:
-    :path: ".symlinks/plugins/firebase_auth/ios"
+    :path: Flutter/ephemeral/.symlinks/plugins/firebase_auth/macos
   firebase_core:
-    :path: ".symlinks/plugins/firebase_core/ios"
-  Flutter:
-    :path: Flutter
+    :path: Flutter/ephemeral/.symlinks/plugins/firebase_core/macos
+  FlutterMacOS:
+    :path: Flutter/ephemeral
   google_sign_in_ios:
-    :path: ".symlinks/plugins/google_sign_in_ios/darwin"
+    :path: Flutter/ephemeral/.symlinks/plugins/google_sign_in_ios/darwin
   path_provider_foundation:
-    :path: ".symlinks/plugins/path_provider_foundation/darwin"
+    :path: Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin
 
 SPEC CHECKSUMS:
   abseil: a05cc83bf02079535e17169a73c5be5ba47f714b
   AppAuth: 1c1a8afa7e12f2ec3a294d9882dfa5ab7d3cb063
   AppCheckCore: cc8fd0a3a230ddd401f326489c99990b013f0c4f
   BoringSSL-GRPC: dded2a44897e45f28f08ae87a55ee4bcd19bc508
-  cloud_firestore: a824d9a55c9dffddf8de7c1e8fbcd66ca13f1624
+  cloud_firestore: 9f39d989f3563ffd5d8f6a2faed52fc5f78376b4
   Firebase: 800d487043c0557d9faed71477a38d9aafb08a41
-  firebase_auth: 4734e8223034e214039a9a805ff2cfb323223e34
-  firebase_core: 633e1851ffe1b9ab875f6467a4f574c79cef02e4
+  firebase_auth: 1d35efb142c2a0ae7e8028e719052c73399ea267
+  firebase_core: eeea10f64026b68cd0bc3dee079ab4717e22909e
   FirebaseAppCheckInterop: c848d06a04030c9858ef0ae555b82035dbe470d0
   FirebaseAuth: 654e4de84787c45d7265599a651038e854ccb439
   FirebaseAuthInterop: 002da671896af5e8879ae117dc604ed240b86e80
@@ -1477,7 +1477,7 @@ SPEC CHECKSUMS:
   FirebaseFirestore: 64f13d770a1e5a77e667efc5ed5576461f4d7827
   FirebaseFirestoreInternal: 1ba4a8841496a9af788622a97fc45eb7b3b92c5f
   FirebaseSharedSwift: 59266c22ccfcef604d725c034c568fa666ea9bda
-  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
   google_sign_in_ios: 205742c688aea0e64db9da03c33121694a365109
   GoogleSignIn: c7f09cfbc85a1abf69187be091997c317cc33b77
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
@@ -1489,8 +1489,7 @@ SPEC CHECKSUMS:
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
-  RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
 
-PODFILE CHECKSUM: ae9e65fc23486119b8e977fd41d9213f251e537a
+PODFILE CHECKSUM: 54d867c82ac51cbd61b565781b9fada492027009
 
 COCOAPODS: 1.16.2

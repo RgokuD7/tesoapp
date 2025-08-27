@@ -33,19 +33,9 @@ class AuthPage extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 15),
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  buildFeatureRow(text: 'Control total de ingresos y gastos'),
-                  buildFeatureRow(
-                    text: 'Transparencia para todos los miembros',
-                  ),
-                  buildFeatureRow(text: 'Reportes y gráficos en tiempo real'),
-                ],
-              ),
-            ),
+            buildFeatureRow(text: 'Control total de ingresos y gastos'),
+            buildFeatureRow(text: 'Transparencia para todos los miembros'),
+            buildFeatureRow(text: 'Reportes y gráficos en tiempo real'),
             const SizedBox(height: 40),
             ElevatedButton(
               onPressed: () => Navigator.pushNamed(context, '/login'),
@@ -113,7 +103,7 @@ class AuthPage extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.only(bottom: spacing),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, color: iconColor),
           SizedBox(width: spacing),

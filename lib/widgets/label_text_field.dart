@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class LabeledTextField extends StatefulWidget {
+  final String fieldKey;
   final String label;
   final String hint;
   final TextEditingController controller;
@@ -9,10 +11,14 @@ class LabeledTextField extends StatefulWidget {
   final String? Function(String?)? validator;
   final int maxLines;
   final bool autofocus;
-  final bool? isPassword;
+  final bool isPassword;
+  final Map<String?, String?> errors;
+  final Function(String)? onChanged;
+  final bool isCurrency;
 
   const LabeledTextField({
     super.key,
+    required this.fieldKey,
     required this.label,
     required this.hint,
     required this.controller,
@@ -22,6 +28,9 @@ class LabeledTextField extends StatefulWidget {
     this.maxLines = 1,
     this.autofocus = false,
     this.isPassword = false,
+    this.errors = const {},
+    this.onChanged,
+    this.isCurrency = false,
   });
 
   @override
@@ -29,16 +38,41 @@ class LabeledTextField extends StatefulWidget {
 }
 
 class _LabeledTextFieldState extends State<LabeledTextField> {
-  late bool _obscureText; // control interno para el ojo 👁️
+  late bool _obscureText;
 
   @override
   void initState() {
     super.initState();
-    _obscureText = widget.isPassword == true ? true : false; // inicializamos
+    _obscureText = widget.isPassword;
+
+    // Si es currency, formateamos el valor inicial
+    if (widget.isCurrency && widget.controller.text.isNotEmpty) {
+      widget.controller.text = _formatCurrency(
+        widget.controller.text.replaceAll(RegExp(r'[^0-9]'), ''),
+      );
+    }
+  }
+
+  String _formatCurrency(String value) {
+    if (value.isEmpty) return '';
+    final number = int.tryParse(value);
+    if (number == null) return '';
+    final formatter = NumberFormat.currency(
+      locale: 'es_CL',
+      name: 'CLP',
+      symbol: '\$',
+      decimalDigits: 0,
+      customPattern: '¤#,##0',
+    );
+    return formatter.format(number);
   }
 
   @override
   Widget build(BuildContext context) {
+    final hasErrors =
+        widget.errors.containsKey(widget.fieldKey) ||
+        widget.errors.containsKey("all");
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -54,20 +88,32 @@ class _LabeledTextFieldState extends State<LabeledTextField> {
           ),
           const SizedBox(height: 4),
           TextFormField(
+            key: Key(widget.fieldKey),
             controller: widget.controller,
-            keyboardType: widget.keyboardType,
+            keyboardType: widget.isCurrency
+                ? TextInputType.number
+                : widget.keyboardType,
             obscureText: _obscureText,
             validator: widget.validator,
             maxLines: widget.maxLines,
             autofocus: widget.autofocus,
+            onChanged: (val) {
+              if (widget.isCurrency) {
+                final newText = _formatCurrency(
+                  val.replaceAll(RegExp(r'[^0-9]'), ''),
+                );
+                // mover el cursor al final
+                widget.controller.value = TextEditingValue(
+                  text: newText,
+                  selection: TextSelection.collapsed(offset: newText.length),
+                );
+              }
+              if (widget.onChanged != null) widget.onChanged!(val);
+            },
             decoration: InputDecoration(
+              errorStyle: const TextStyle(fontSize: 0),
               prefixIcon: widget.icon,
-              prefixIconColor: WidgetStateColor.fromMap({
-                WidgetState.focused: Theme.of(context).colorScheme.primary,
-                WidgetState.any: const Color.fromRGBO(100, 116, 139, 1),
-                WidgetState.disabled: Colors.grey,
-                WidgetState.error: Colors.red,
-              }),
+              prefixIconColor: const Color.fromRGBO(100, 116, 139, 1),
               suffixIcon: widget.isPassword == true
                   ? Padding(
                       padding: const EdgeInsets.only(right: 8),
@@ -82,24 +128,17 @@ class _LabeledTextFieldState extends State<LabeledTextField> {
                             _obscureText = !_obscureText;
                           });
                         },
-                        splashColor: Colors.transparent, // quita el splash
-                        highlightColor:
-                            Colors.transparent, // quita el efecto al presionar
-                        hoverColor:
-                            Colors.transparent, // opcional, para web/desktop
                       ),
                     )
                   : null,
-              suffixIconColor: WidgetStateColor.fromMap({
-                WidgetState.focused: _obscureText == true
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.orange,
-                WidgetState.any: const Color.fromRGBO(100, 116, 139, 1),
-                WidgetState.disabled: Colors.grey,
-                WidgetState.error: Colors.red,
-              }),
+              suffixIconColor: const Color.fromRGBO(100, 116, 139, 1),
               filled: true,
-              fillColor: Colors.grey.shade100,
+              fillColor: WidgetStateColor.resolveWith((states) {
+                if (states.contains(WidgetState.error) || hasErrors) {
+                  return const Color.fromRGBO(254, 242, 242, 1);
+                }
+                return const Color.fromRGBO(243, 244, 246, 1);
+              }),
               hintText: widget.hint,
               hintStyle: const TextStyle(
                 color: Color.fromRGBO(148, 163, 184, 1),
@@ -107,12 +146,36 @@ class _LabeledTextFieldState extends State<LabeledTextField> {
               border: const OutlineInputBorder(
                 borderRadius: BorderRadius.all(Radius.circular(12)),
               ),
-              enabledBorder: const OutlineInputBorder(
+              focusedBorder: OutlineInputBorder(
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
+                borderSide: BorderSide(
+                  width: 1.5,
+                  color: hasErrors
+                      ? const Color.fromRGBO(239, 68, 68, 1)
+                      : Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              errorBorder: const OutlineInputBorder(
                 borderRadius: BorderRadius.all(Radius.circular(12)),
                 borderSide: BorderSide(
-                  width: 1,
-                  color: Color.fromRGBO(203, 213, 225, 1),
-                  style: BorderStyle.solid,
+                  width: 1.5,
+                  color: Color.fromRGBO(239, 68, 68, 1),
+                ),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
+                borderSide: BorderSide(
+                  width: 1.5,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
+                borderSide: BorderSide(
+                  width: 1.5,
+                  color: hasErrors
+                      ? const Color.fromRGBO(239, 68, 68, 1)
+                      : const Color.fromRGBO(209, 213, 219, 1),
                 ),
               ),
               contentPadding: const EdgeInsets.symmetric(

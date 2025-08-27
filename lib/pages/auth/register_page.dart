@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../widgets/label_text_field.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+import '../../widgets/label_text_field.dart';
 import '../../widgets/custom_loader.dart';
+import '../../widgets/auth_errors_messages.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -15,16 +17,22 @@ class _RegisterPageState extends State<RegisterPage>
   late final AnimationController _controller;
   late final Animation<Offset> _offsetAnimation;
 
-  bool _isLoading = false;
-  int _currentStep = 0; // 0 = datos personales, 1 = contraseña
-
   final _formKey = GlobalKey<FormState>();
+  final _pageController = PageController();
+
+  bool _isLoading = false;
+  int _currentStep = 0;
+  String _errorMessage = "";
+  final Map<String, String> _errorMessages = {};
+
   final _nameController = TextEditingController();
   final _lastnameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+
+  String _passwordValue = "";
 
   @override
   void initState() {
@@ -43,6 +51,7 @@ class _RegisterPageState extends State<RegisterPage>
   @override
   void dispose() {
     _controller.dispose();
+    _pageController.dispose();
     _nameController.dispose();
     _lastnameController.dispose();
     _emailController.dispose();
@@ -53,76 +62,127 @@ class _RegisterPageState extends State<RegisterPage>
   }
 
   void _submit() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true); // mostrar loader
-      try {
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _emailController.text,
-          password: _passwordController.text,
-        );
-        if (!mounted) return; // evita usar context si ya no está montado
-        Navigator.pop(context);
-        // Usuario creado exitosamente
-      } on FirebaseAuthException catch (e) {
-        if (e.code == 'weak-password') {
-          showDialog(
-            context: context,
-            builder: (_) => AlertDialog(
-              title: const Text('¡Error!'),
-              content: Text('La contraseña proporcionada es demasiado débil.'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Aceptar'),
-                ),
-              ],
-            ),
-          );
-        } else if (e.code == 'email-already-in-use') {
-          showDialog(
-            context: context,
-            builder: (_) => AlertDialog(
-              title: const Text('¡Error!'),
-              content: Text('El correo electrónico ya está en uso.'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Aceptar'),
-                ),
-              ],
-            ),
-          );
-        }
-      } catch (e) {
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('¡Error!'),
-            content: Text(e.toString()),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Aceptar'),
-              ),
-            ],
-          ),
-        );
-      } finally {
-        if (mounted) setState(() => _isLoading = false); // ocultar loader
+    // Clear all previous errors
+    _errorMessages.clear();
+    setState(() {
+      _errorMessage = "";
+    });
+
+    if (!_formKey.currentState!.validate()) {
+      setState(() {
+        _errorMessage = "Por favor, completa los campos requeridos.";
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+      if (!mounted) return;
+      Navigator.pop(context);
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      String message =
+          'Ocurrió un error inesperado. Por favor, inténtalo de nuevo.';
+      if (e.code == 'weak-password') {
+        message =
+            'La contraseña es muy débil. Debe tener al menos 6 caracteres.';
+        _errorMessages['password'] = message;
+        _pageController.jumpToPage(1);
+      } else if (e.code == 'email-already-in-use') {
+        message = 'Este correo electrónico ya está en uso.';
+        _errorMessages['email'] = message;
+        _pageController.jumpToPage(0);
+      } else if (e.code == 'invalid-email') {
+        message = 'El formato del correo electrónico es inválido.';
+        _errorMessages['email'] = message;
+        _pageController.jumpToPage(0);
       }
+
+      setState(() {
+        _errorMessage = message;
+      });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   void _nextStep() {
-    if (_formKey.currentState!.validate()) {
+    // Limpiar errores anteriores
+    _errorMessages.clear();
+    setState(() {
+      _errorMessage = "";
+    });
+
+    // Validar campos
+    String? message; // mensaje global
+
+    // Step 0: Datos personales
+    if (_currentStep == 0) {
+      if (_nameController.text.isEmpty) {
+        message = 'Por favor ingresa tu nombre';
+      } else if (_lastnameController.text.isEmpty) {
+        message = 'Por favor ingresa tus apellidos';
+      } else if (_emailController.text.isEmpty) {
+        message = 'Por favor ingresa tu correo';
+      } else if (!RegExp(
+        r'^[\w-.]+@([\w-]+\.)+[\w]{2,4}$',
+      ).hasMatch(_emailController.text)) {
+        message = 'Formato de correo inválido';
+      }
+    }
+
+    // Step 1: Seguridad
+    if (_currentStep == 1) {
+      final password = _passwordController.text;
+      final confirm = _confirmPasswordController.text;
+
+      // Validar requisitos de la contraseña
+      final bool meetsRequirements =
+          password.length >= 6 &&
+          RegExp(r'[A-Z]').hasMatch(password) &&
+          RegExp(r'[0-9]').hasMatch(password);
+
+      if (!meetsRequirements) {
+        message = 'La contraseña debe cumplir con los 3 requisitos de abajo';
+      } else if (password != confirm) {
+        message = 'Las contraseñas no coinciden';
+      }
+    }
+
+    if (message != null) {
+      // Mostrar mensaje global
+      setState(() {
+        _errorMessage = message!;
+      });
+    } else {
+      // Si todo está bien, pasar al siguiente paso o enviar
       if (_currentStep < 1) {
-        setState(() {
-          _currentStep += 1;
-        });
+        _pageController.nextPage(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.ease,
+        );
       } else {
         _submit();
       }
     }
+  }
+
+  void _previousStep() {
+    _pageController.previousPage(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.ease,
+    );
+    setState(() {
+      _currentStep--;
+      _errorMessage = "";
+    });
   }
 
   @override
@@ -135,7 +195,7 @@ class _RegisterPageState extends State<RegisterPage>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header fijo
-              SizedBox(height: 40),
+              const SizedBox(height: 40),
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
@@ -173,7 +233,6 @@ class _RegisterPageState extends State<RegisterPage>
                 ),
               ),
               const SizedBox(height: 20),
-
               // Formulario scrollable
               Expanded(
                 child: SlideTransition(
@@ -199,324 +258,305 @@ class _RegisterPageState extends State<RegisterPage>
                         ),
                       ],
                     ),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          /* _buildRoleSelector() */
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(2, (index) {
-                              Color color;
-                              if (index < _currentStep) {
-                                color = Colors.green; // ya pasó
-                              } else if (index == _currentStep) {
-                                color = Colors.blue; // activo
-                              } else {
-                                color = Colors.grey.shade300; // pendiente
-                              }
-
-                              return Container(
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 3,
-                                ),
-                                width: 12,
-                                height: 12,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: color,
-                                ),
-                              );
-                            }),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(2, (index) {
+                            Color color;
+                            if (index < _currentStep) {
+                              color = Colors.green;
+                            } else if (index == _currentStep) {
+                              color = Colors.blue;
+                            } else {
+                              color = Colors.grey.shade300;
+                            }
+                            return Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 3),
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: color,
+                              ),
+                            );
+                          }),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          _currentStep == 0 ? 'Datos Personales' : 'Seguridad',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
                           ),
-                          const SizedBox(height: 10),
-                          Text(
-                            _currentStep == 0
-                                ? 'Datos Personales'
-                                : 'Seguridad',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        ),
+                        Text(
+                          _currentStep == 0
+                              ? 'Cuéntanos un poco sobre ti'
+                              : 'Crea una contraseña segura',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Color.fromRGBO(100, 116, 139, 1),
                           ),
-                          Text(
-                            _currentStep == 0
-                                ? 'Cuéntanos un poco sobre ti'
-                                : 'Crea una contraseña segura',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Color.fromRGBO(100, 116, 139, 1),
-                            ),
-                          ),
-                          const SizedBox(height: 15),
-                          Form(
+                        ),
+                        const SizedBox(height: 15),
+                        SingleChildScrollView(
+                          child: Form(
                             key: _formKey,
-                            child: Column(
-                              children: [
-                                if (_currentStep == 0) ...[
-                                  LabeledTextField(
-                                    label: 'Nombre',
-                                    hint: 'Tu nombre completo',
-                                    controller: _nameController,
-                                    icon: const Icon(Icons.person_outlined),
-                                    validator: (v) => v == null || v.isEmpty
-                                        ? 'Por favor ingresa tu nombre'
-                                        : null,
+                            child: SizedBox(
+                              height: 340,
+                              child: PageView(
+                                controller: _pageController,
+                                physics: const NeverScrollableScrollPhysics(),
+                                onPageChanged: (index) {
+                                  setState(() {
+                                    _currentStep = index;
+                                  });
+                                },
+                                children: [
+                                  // Step 0: Personal Info
+                                  Column(
+                                    children: [
+                                      AuthErrorMessages(message: _errorMessage),
+                                      LabeledTextField(
+                                        fieldKey: 'name',
+                                        label: 'Nombre',
+                                        hint: 'Tus nombres',
+                                        controller: _nameController,
+                                        icon: const Icon(Icons.person_outlined),
+                                        errors: _errorMessages,
+                                        validator: (v) {
+                                          if (v == null || v.isEmpty) {
+                                            return 'Requerido';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                      LabeledTextField(
+                                        fieldKey: 'lastname',
+                                        label: 'Apellidos',
+                                        hint: 'Tus apellidos',
+                                        controller: _lastnameController,
+                                        icon: const Icon(Icons.person_outlined),
+                                        errors: _errorMessages,
+                                        validator: (v) {
+                                          if (v == null || v.isEmpty) {
+                                            return 'Requerido';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                      LabeledTextField(
+                                        fieldKey: 'email',
+                                        label: 'Correo electrónico',
+                                        hint: 'ejemplo@correo.com',
+                                        controller: _emailController,
+                                        icon: const Icon(Icons.email_outlined),
+                                        keyboardType:
+                                            TextInputType.emailAddress,
+                                        errors: _errorMessages,
+                                        validator: (v) {
+                                          if (v == null || v.isEmpty) {
+                                            return 'Por favor ingresa tu email';
+                                          }
+                                          if (!RegExp(
+                                            r'^[\w-.]+@([\w-]+\.)+[\w]{2,4}$',
+                                          ).hasMatch(v)) {
+                                            return 'Formato de correo inválido';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                      LabeledTextField(
+                                        fieldKey: 'phone',
+                                        label: 'Teléfono (opcional)',
+                                        hint: '+56 9 1234 5678',
+                                        controller: _phoneController,
+                                        icon: const Icon(Icons.phone_outlined),
+                                        keyboardType: TextInputType.phone,
+                                      ),
+                                    ],
                                   ),
-                                  LabeledTextField(
-                                    label: 'Apellidos',
-                                    hint: 'Tus apellidos',
-                                    controller: _lastnameController,
-                                    icon: const Icon(Icons.person_outlined),
-                                    validator: (v) => v == null || v.isEmpty
-                                        ? 'Por favor ingresa tu apellido'
-                                        : null,
-                                  ),
-                                  LabeledTextField(
-                                    label: 'Correo electrónico',
-                                    hint: 'ejemplo@correo.com',
-                                    controller: _emailController,
-                                    icon: Icon(Icons.email_outlined),
-                                    keyboardType: TextInputType.emailAddress,
-                                    validator: (v) {
-                                      if (v == null || v.isEmpty) {
-                                        return 'Por favor ingresa tu correo';
-                                      }
-                                      if (!RegExp(
-                                        r'^[\w-.]+@([\w-]+\.)+[\w]{2,4}$',
-                                      ).hasMatch(v)) {
-                                        return 'Correo inválido';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                  LabeledTextField(
-                                    label: 'Teléfono (opcional)',
-                                    hint: '+56 9 1234 5678',
-                                    controller: _phoneController,
-                                    icon: Icon(Icons.phone_outlined),
-                                    keyboardType: TextInputType.phone,
-                                  ),
-                                ] else if (_currentStep == 1) ...[
-                                  LabeledTextField(
-                                    label: 'Contraseña',
-                                    hint: 'Ingresa tu contraseña',
-                                    controller: _passwordController,
-                                    icon: Icon(Icons.lock_outlined),
-                                    isPassword: true,
-                                    validator: (v) {
-                                      if (v == null || v.isEmpty) {
-                                        return 'Por favor ingresa una contraseña';
-                                      }
-                                      if (v.length < 6) {
-                                        return 'La contraseña debe tener al menos 6 caracteres';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                  LabeledTextField(
-                                    label: 'Confirmar contraseña',
-                                    hint: 'Repite la contraseña',
-                                    controller: _confirmPasswordController,
-                                    icon: Icon(Icons.lock_outlined),
-                                    isPassword: true,
-                                    validator: (v) {
-                                      if (v == null || v.isEmpty) {
-                                        return 'Confirma tu contraseña';
-                                      }
-                                      if (v != _passwordController.text) {
-                                        return 'Las contraseñas no coinciden';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Tu contraseña debe tener:',
-                                          style: TextStyle(
-                                            color: Color.fromRGBO(
-                                              55,
-                                              65,
-                                              81,
-                                              1,
-                                            ),
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: const [
-                                            Text(
-                                              "•  ",
-                                              style: TextStyle(fontSize: 14),
-                                            ),
-                                            Expanded(
-                                              child: Text(
-                                                "Al menos 6 caracteres",
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: const [
-                                            Text(
-                                              "•  ",
-                                              style: TextStyle(fontSize: 14),
-                                            ),
-                                            Expanded(
-                                              child: Text(
-                                                "Una letra mayúscula",
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: const [
-                                            Text(
-                                              "•  ",
-                                              style: TextStyle(fontSize: 14),
-                                            ),
-                                            Expanded(
-                                              child: Text(
-                                                "Un número",
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                                const SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    if (_currentStep == 1)
-                                      OutlinedButton(
-                                        onPressed: () {
+                                  // Step 1: Security
+                                  Column(
+                                    children: [
+                                      AuthErrorMessages(message: _errorMessage),
+                                      LabeledTextField(
+                                        fieldKey: 'password',
+                                        label: 'Contraseña',
+                                        hint: 'Ingresa tu contraseña',
+                                        isPassword: true,
+                                        controller: _passwordController,
+                                        icon: const Icon(Icons.lock_outlined),
+                                        errors: _errorMessages,
+                                        validator: (v) {
+                                          if (v == null || v.isEmpty) {
+                                            return 'Requerido';
+                                          }
+                                          if (v.length < 6) {
+                                            return 'Mínimo 6 caracteres';
+                                          }
+                                          if (!RegExp(r'[A-Z]').hasMatch(v)) {
+                                            return 'Debe contener al menos una letra mayúscula';
+                                          }
+                                          if (!RegExp(r'[0-9]').hasMatch(v)) {
+                                            return 'Debe contener al menos un número';
+                                          }
+                                          return null;
+                                        },
+                                        onChanged: (val) {
                                           setState(() {
-                                            _currentStep -= 1;
+                                            _passwordValue = val;
                                           });
                                         },
-                                        style: ElevatedButton.styleFrom(
-                                          fixedSize: const Size(
-                                            double.infinity,
-                                            55,
-                                          ),
-                                          side: BorderSide(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                            width: 2,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
+                                      ),
+                                      LabeledTextField(
+                                        fieldKey: 'confirm_password',
+                                        label: 'Confirmar contraseña',
+                                        hint: 'Repite la contraseña',
+                                        isPassword: true,
+                                        controller: _confirmPasswordController,
+                                        icon: const Icon(Icons.lock_outlined),
+                                        errors: _errorMessages,
+                                        validator: (v) {
+                                          if (v == null || v.isEmpty) {
+                                            return 'Requerido';
+                                          }
+                                          if (v != _passwordController.text) {
+                                            return 'Las contraseñas no coinciden';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade100,
+                                          borderRadius: BorderRadius.circular(
+                                            12,
                                           ),
                                         ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
+                                        child: Column(
                                           crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
+                                              CrossAxisAlignment.start,
                                           children: [
-                                            const Icon(
-                                              Icons.navigate_before_outlined,
-                                            ),
-                                            const SizedBox(width: 4),
                                             Text(
-                                              'Atrás',
+                                              'Tu contraseña debe tener:',
                                               style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
+                                                color: Color.fromRGBO(
+                                                  55,
+                                                  65,
+                                                  81,
+                                                  1,
+                                                ),
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
                                               ),
+                                            ),
+                                            SizedBox(height: 8),
+                                            Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                _buildPasswordRule(
+                                                  "Al menos 6 caracteres",
+                                                  _passwordValue.length >= 6,
+                                                ),
+                                                _buildPasswordRule(
+                                                  "Una letra mayúscula",
+                                                  _passwordValue.contains(
+                                                    RegExp(r'[A-Z]'),
+                                                  ),
+                                                ),
+                                                _buildPasswordRule(
+                                                  "Un número",
+                                                  _passwordValue.contains(
+                                                    RegExp(r'[0-9]'),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ],
                                         ),
                                       ),
-                                    if (_currentStep == 1)
-                                      const SizedBox(width: 10),
-                                    Expanded(
-                                      child: ElevatedButton(
-                                        onPressed: _nextStep,
-                                        style: ElevatedButton.styleFrom(
-                                          fixedSize: const Size(
-                                            double.infinity,
-                                            55,
-                                          ),
-                                          backgroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                          foregroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              _currentStep == 0
-                                                  ? 'Siguiente'
-                                                  : 'Registrar',
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            const Icon(
-                                              Icons.navigate_next_outlined,
-                                            ),
-                                          ],
-                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            if (_currentStep == 1)
+                              OutlinedButton(
+                                onPressed: _previousStep,
+                                style: ElevatedButton.styleFrom(
+                                  fixedSize: const Size(double.infinity, 55),
+                                  side: BorderSide(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    width: 2,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    Icon(Icons.navigate_before_outlined),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Atrás',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ],
                                 ),
-
-                                const SizedBox(height: 10),
-                              ],
+                              ),
+                            if (_currentStep == 1) const SizedBox(width: 10),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: _nextStep,
+                                style: ElevatedButton.styleFrom(
+                                  fixedSize: const Size(double.infinity, 55),
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.primary,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      _currentStep == 0
+                                          ? 'Siguiente'
+                                          : 'Registrar',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.navigate_next_outlined),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                      ],
                     ),
                   ),
                 ),
@@ -526,6 +566,34 @@ class _RegisterPageState extends State<RegisterPage>
           if (_isLoading) const CustomLoader(),
         ],
       ),
+    );
+  }
+
+  Widget _buildPasswordRule(String text, bool condition) {
+    final bool isEmpty = _passwordValue.isEmpty;
+    return Row(
+      children: [
+        Icon(
+          isEmpty
+              ? Icons.trip_origin_outlined
+              : (condition ? Icons.check_circle : Icons.cancel),
+          color: isEmpty
+              ? Colors
+                    .grey // cuando no escribe nada, gris
+              : (condition ? Colors.green : Colors.red),
+          size: 18,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: TextStyle(
+            color: isEmpty
+                ? Colors
+                      .grey // gris si está vacío
+                : (condition ? Colors.green : Colors.red),
+          ),
+        ),
+      ],
     );
   }
 }

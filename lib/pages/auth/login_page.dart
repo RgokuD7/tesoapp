@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../widgets/label_text_field.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../widgets/custom_loader.dart';
-import '../../widgets/alert_dialog.dart';
+import '../../widgets/auth_errors_messages.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -17,10 +17,11 @@ class _LoginPageState extends State<LoginPage>
   late final Animation<Offset> _offsetAnimation;
 
   bool _isLoading = false;
-
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  String _errorMessage = "";
+  final Map<String, String> _errorMessages = {};
 
   @override
   void initState() {
@@ -45,37 +46,56 @@ class _LoginPageState extends State<LoginPage>
   }
 
   void _submit() async {
-    if (_formKey.currentState!.validate()) {
-      try {
-        setState(() => _isLoading = true);
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailController.text,
-          password: _passwordController.text,
-        );
-        if (!mounted) return; // evita usar context si ya no está montado
-        Navigator.pop(context);
-      } on FirebaseAuthException catch (e) {
-        if (!mounted) return;
+    // Limpiamos los errores anteriores antes de la validación
+    _errorMessages.clear();
+    setState(() {
+      _errorMessage = "";
+    });
 
-        String message;
-        if (e.code == 'user-not-found') {
-          message = 'El correo no está registrado.';
-        } else if (e.code == 'wrong-password') {
-          message = 'La contraseña es incorrecta.';
-        } else {
-          message = 'Los siguientes errores han ocurrido: ${e.message}';
-        }
-        await showDialog(
-          context: context,
-          builder: (_) => CustomAlertDialog(
-            message: message,
-            title: '¡Error!',
-            typeOfDialog: 'error',
-          ),
-        );
-      } finally {
-        if (mounted) setState(() => _isLoading = false); // ocultar loader
+    // Si el formulario no es válido, obtenemos los mensajes de error
+    if (!_formKey.currentState!.validate()) {
+      setState(() {
+        _errorMessage = "Por favor, ingresa los campos requeridos.";
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+      if (!mounted) return;
+      // Si el inicio de sesión es exitoso, navega hacia atrás
+      Navigator.pop(context);
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      String message =
+          'Ocurrió un error inesperado. Por favor, inténtalo de nuevo, ${e.message}';
+      if (e.code == 'user-not-found') {
+        message = 'No existe una cuenta asociada a este correo.';
+        // Asignamos el mensaje real al mapa
+        _errorMessages['email'] = message;
+      } else if (e.code == 'wrong-password') {
+        message = 'La contraseña ingresada no es correcta.';
+        // Asignamos el mensaje real al mapa
+        _errorMessages['password'] = message;
+      } else if (e.code == 'invalid-email') {
+        message = 'El formato del correo electrónico es inválido.';
+        // Asignamos el mensaje real al mapa
+        _errorMessages['email'] = message;
       }
+
+      setState(() {
+        _errorMessage = message;
+      });
+      // Ya no necesitamos llamar a validate() aquí, el setState() se encargará
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -88,8 +108,7 @@ class _LoginPageState extends State<LoginPage>
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header fijo
-              SizedBox(height: 40),
+              const SizedBox(height: 40),
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
@@ -127,8 +146,6 @@ class _LoginPageState extends State<LoginPage>
                 ),
               ),
               const SizedBox(height: 16),
-
-              // Formulario scrollable
               Expanded(
                 child: SlideTransition(
                   position: _offsetAnimation,
@@ -156,39 +173,47 @@ class _LoginPageState extends State<LoginPage>
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          const SizedBox(height: 8),
                           Form(
                             key: _formKey,
                             child: Column(
                               children: [
+                                // Muestra el mensaje de error si existe
+                                if (_errorMessage.isNotEmpty)
+                                  AuthErrorMessages(message: _errorMessage),
+
+                                const SizedBox(height: 8),
+
                                 LabeledTextField(
+                                  fieldKey: 'email',
                                   label: 'Correo electrónico',
                                   autofocus: true,
                                   hint: 'ejemplo@correo.com',
                                   controller: _emailController,
-                                  icon: Icon(Icons.email_outlined),
+                                  icon: const Icon(Icons.email_outlined),
                                   keyboardType: TextInputType.emailAddress,
+                                  errors: _errorMessages,
                                   validator: (v) {
                                     if (v == null || v.isEmpty) {
-                                      return 'Por favor ingresa tu correo';
-                                    }
-                                    if (!RegExp(
+                                      return 'Requerido';
+                                    } else if (!RegExp(
                                       r'^[\w-.]+@([\w-]+\.)+[\w]{2,4}$',
                                     ).hasMatch(v)) {
-                                      return 'Correo inválido';
+                                      return 'Formato de correo inválido';
                                     }
                                     return null;
                                   },
                                 ),
                                 LabeledTextField(
+                                  fieldKey: 'password',
                                   label: 'Contraseña',
                                   hint: 'Ingresa tu contraseña',
                                   isPassword: true,
                                   controller: _passwordController,
-                                  icon: Icon(Icons.lock_outlined),
+                                  icon: const Icon(Icons.lock_outlined),
+                                  errors: _errorMessages,
                                   validator: (v) {
                                     if (v == null || v.isEmpty) {
-                                      return 'Por favor ingresa tu contraseña';
+                                      return 'Requerido';
                                     }
                                     return null;
                                   },
@@ -198,27 +223,23 @@ class _LoginPageState extends State<LoginPage>
                                   alignment: Alignment.centerLeft,
                                   child: TextButton(
                                     onPressed: () {
-                                      Navigator.pushNamed(context, '/');
+                                      // TODO: Implementar navegación a la página de recuperación de contraseña
+                                      // Navigator.pushNamed(context, '/forgot_password');
                                     },
                                     style: TextButton.styleFrom(
-                                      padding: EdgeInsets
-                                          .zero, // para que no tenga padding extra
-                                      minimumSize: Size(
-                                        0,
-                                        0,
-                                      ), // quita restricciones de tamaño
-                                      tapTargetSize: MaterialTapTargetSize
-                                          .shrinkWrap, // hace que el área clickeable sea justa
+                                      padding: EdgeInsets.zero,
+                                      minimumSize: Size.zero,
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
                                     ),
                                     child: Text(
                                       "¿Olvidaste tu contraseña?",
                                       style: TextStyle(
                                         color: Theme.of(
                                           context,
-                                        ).colorScheme.primary, // color del link
+                                        ).colorScheme.primary,
                                         fontSize: 14,
-                                        decoration: TextDecoration
-                                            .none, // subrayado tipo link
+                                        decoration: TextDecoration.none,
                                       ),
                                     ),
                                   ),
@@ -241,19 +262,16 @@ class _LoginPageState extends State<LoginPage>
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
+                                    children: const [
                                       Text(
                                         'Iniciar Sesión',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                      const SizedBox(width: 4),
-                                      const Icon(Icons.navigate_next_outlined),
+                                      SizedBox(width: 4),
+                                      Icon(Icons.navigate_next_outlined),
                                     ],
                                   ),
                                 ),
@@ -287,7 +305,7 @@ class _LoginPageState extends State<LoginPage>
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text('¿No tienes cuenta?'),
+                                    const Text('¿No tienes cuenta?'),
                                     TextButton(
                                       onPressed: () {
                                         Navigator.pushNamed(
