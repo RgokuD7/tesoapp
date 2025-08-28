@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
+
+import '../../providers/user_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../models/user.dart';
 
 import '../../widgets/label_text_field.dart';
 import '../../widgets/custom_loader.dart';
 import '../../widgets/auth_errors_messages.dart';
 
-class RegisterPage extends StatefulWidget {
+class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  ConsumerState<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage>
+class _RegisterPageState extends ConsumerState<RegisterPage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<Offset> _offsetAnimation;
@@ -80,13 +84,30 @@ class _RegisterPageState extends State<RegisterPage>
     });
 
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      final credential = await fb.FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
+      // Guardar datos adicionales en Firestore
+      // Create User model
+      final newUser = User(
+        id: credential.user!.uid,
+        firstName: _nameController.text.trim(),
+        lastName: _lastnameController.text.trim(),
         email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
+        groups: [],
+        notificationsEnabled: false,
       );
+      // Save in Firestore via Riverpod
+      if (mounted) {
+        final notifier = ref.read(userProvider.notifier);
+        await notifier.createUser(newUser);
+      }
       if (!mounted) return;
       Navigator.pop(context);
-    } on FirebaseAuthException catch (e) {
+    } on fb.FirebaseAuthException catch (e) {
       if (!mounted) return;
       String message =
           'Ocurrió un error inesperado. Por favor, inténtalo de nuevo.';

@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 import '../../widgets/label_text_field.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+import '../../providers/user_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../models/user.dart';
+
 import '../../widgets/custom_loader.dart';
 import '../../widgets/auth_errors_messages.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage>
+class _LoginPageState extends ConsumerState<LoginPage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<Offset> _offsetAnimation;

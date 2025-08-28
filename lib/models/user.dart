@@ -19,6 +19,29 @@ class User {
     this.notificationsEnabled = true, // default enabled
   });
 
+  // --- copyWith ---
+  User copyWith({
+    String? id,
+    String? firstName,
+    String? lastName,
+    String? email,
+    String? phoneNumber,
+    List<String>? groups,
+    String? profilePicture,
+    bool? notificationsEnabled,
+  }) {
+    return User(
+      id: id ?? this.id,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      email: email ?? this.email,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      groups: groups ?? List<String>.from(this.groups), // se clona lista
+      profilePicture: profilePicture ?? this.profilePicture,
+      notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+    );
+  }
+
   // --- Serialization (e.g. Firestore, REST API) ---
   Map<String, dynamic> toMap() {
     return {

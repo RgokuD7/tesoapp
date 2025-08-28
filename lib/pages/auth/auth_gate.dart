@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../widgets/custom_loader.dart';
 
 import '../index_page.dart';
-import '../role_selection_page.dart';
 import './auth_page.dart';
 
 class AuthGate extends StatelessWidget {
@@ -20,7 +19,7 @@ class AuthGate extends StatelessWidget {
         if (!snapshot.hasData) {
           return const AuthPage();
         }
-        return const RoleSelectionPage();
+        return const IndexPage();
       },
     );
   }
