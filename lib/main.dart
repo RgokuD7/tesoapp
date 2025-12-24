@@ -10,10 +10,13 @@ import 'pages/index_page.dart';
 import 'pages/auth/login_page.dart';
 import 'pages/auth/register_page.dart';
 
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
+  await initializeDateFormatting();
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -24,6 +27,12 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'TesoApp',
+      supportedLocales: const [Locale('en', ''), Locale('es', '')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: ThemeData(
         textTheme: GoogleFonts.interTextTheme(),
         colorScheme: ColorScheme.light(

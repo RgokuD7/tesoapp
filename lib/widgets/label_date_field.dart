@@ -11,6 +11,7 @@ class LabeledDateField extends StatefulWidget {
   final DateTime firstDate;
   final DateTime lastDate;
   final Map<String?, String?> errors;
+  final ValueChanged<DateTime>? onDateSelected;
 
   const LabeledDateField({
     super.key,
@@ -23,6 +24,7 @@ class LabeledDateField extends StatefulWidget {
     required this.firstDate,
     required this.lastDate,
     this.errors = const {},
+    this.onDateSelected,
   });
 
   @override
@@ -60,11 +62,16 @@ class _LabeledDateFieldState extends State<LabeledDateField> {
                 initialDate: DateTime.now(),
                 firstDate: widget.firstDate,
                 lastDate: widget.lastDate,
+                locale: Locale('es', 'ES'),
               );
               if (pickedDate != null) {
                 widget.controller.text = DateFormat(
                   'dd/MM/yyyy',
                 ).format(pickedDate);
+                // Call the callback if provided
+                if (widget.onDateSelected != null) {
+                  widget.onDateSelected!(pickedDate);
+                }
               }
             },
             decoration: InputDecoration(
@@ -80,7 +87,7 @@ class _LabeledDateFieldState extends State<LabeledDateField> {
                 if (states.contains(WidgetState.error) || hasErrors) {
                   return Color.fromRGBO(254, 242, 242, 1);
                 }
-                return Color.fromRGBO(243, 244, 246, 1);
+                return Colors.white;
               }),
               border: const OutlineInputBorder(
                 borderRadius: BorderRadius.all(Radius.circular(12)),

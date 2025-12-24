@@ -8,6 +8,7 @@ import '../../models/user.dart';
 import '../../widgets/label_text_field.dart';
 import '../../widgets/custom_loader.dart';
 import '../../widgets/auth_errors_messages.dart';
+import '../../widgets/dismiss_keyboard.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -43,7 +44,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 300),
     );
     _offsetAnimation = Tween<Offset>(
       begin: const Offset(0, 1),
@@ -142,20 +143,33 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
     });
 
     // Validar campos
-    String? message; // mensaje global
+    String message = ""; // mensaje global
 
     // Step 0: Datos personales
     if (_currentStep == 0) {
-      if (_nameController.text.isEmpty) {
-        message = 'Por favor ingresa tu nombre';
-      } else if (_lastnameController.text.isEmpty) {
-        message = 'Por favor ingresa tus apellidos';
-      } else if (_emailController.text.isEmpty) {
-        message = 'Por favor ingresa tu correo';
+      _errorMessages.clear(); // limpiar errores previos
+      // Validaciones individuales
+      if (_nameController.text.trim().isEmpty) {
+        _errorMessages['name'] = 'Por favor ingresa tu nombre';
+      }
+      if (_lastnameController.text.trim().isEmpty) {
+        _errorMessages['lastname'] = 'Por favor ingresa tus apellidos';
+      }
+      if (_emailController.text.trim().isEmpty) {
+        _errorMessages['email'] = 'Por favor ingresa tu correo';
       } else if (!RegExp(
         r'^[\w-.]+@([\w-]+\.)+[\w]{2,4}$',
       ).hasMatch(_emailController.text)) {
-        message = 'Formato de correo inválido';
+        _errorMessages['email'] = 'Formato de correo inválido';
+      }
+
+      // Decidir mensaje general
+      if (_errorMessages.isEmpty) {
+        message = ''; // no hay errores
+      } else if (_errorMessages.length == 1) {
+        message = _errorMessages.values.first; // solo un error, mostrarlo
+      } else {
+        message = 'Completa todos los campos requeridos'; // varios errores
       }
     }
 
@@ -177,14 +191,14 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
       }
     }
 
-    if (message != null) {
-      // Mostrar mensaje global
+    if (message.isNotEmpty) {
       setState(() {
-        _errorMessage = message!;
+        _errorMessage = message;
       });
     } else {
       // Si todo está bien, pasar al siguiente paso o enviar
       if (_currentStep < 1) {
+        _currentStep++;
         _pageController.nextPage(
           duration: const Duration(milliseconds: 300),
           curve: Curves.ease,
@@ -208,384 +222,457 @@ class _RegisterPageState extends ConsumerState<RegisterPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey.shade100,
-      body: Stack(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+    return DismissKeyboard(
+      child: Scaffold(
+        backgroundColor: Colors.grey.shade100,
+        body: SafeArea(
+          bottom: false,
+          child: Stack(
             children: [
-              // Header fijo
-              const SizedBox(height: 40),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                child: Row(
-                  children: [
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        shape: const CircleBorder(),
-                        padding: const EdgeInsets.all(20),
-                        backgroundColor: Colors.white,
-                      ),
-                      child: const Icon(Icons.arrow_back, color: Colors.black),
-                    ),
-                  ],
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 25),
-                child: Text(
-                  'Crear Cuenta',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 25, vertical: 5),
-                child: Text(
-                  'Únete a la gestión transparente de fondos grupales',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Color.fromRGBO(100, 116, 139, 1),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              // Formulario scrollable
-              Expanded(
-                child: SlideTransition(
-                  position: _offsetAnimation,
-                  child: Container(
-                    padding: const EdgeInsets.only(
-                      left: 25,
-                      right: 25,
-                      top: 25,
-                      bottom: 5,
-                    ),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(16),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 10,
-                          spreadRadius: 2,
-                          offset: Offset(0, -3),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(2, (index) {
-                            Color color;
-                            if (index < _currentStep) {
-                              color = Colors.green;
-                            } else if (index == _currentStep) {
-                              color = Colors.blue;
-                            } else {
-                              color = Colors.grey.shade300;
-                            }
-                            return Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 3),
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: color,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOut,
+                    child: !isKeyboardOpen
+                        ? Column(
+                            key: const ValueKey('header'),
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 10,
+                                ),
+                                child: Row(
+                                  children: [
+                                    ElevatedButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      style: ElevatedButton.styleFrom(
+                                        shape: const CircleBorder(),
+                                        padding: const EdgeInsets.all(20),
+                                        backgroundColor: Colors.white,
+                                      ),
+                                      child: const Icon(
+                                        Icons.arrow_back,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            );
-                          }),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          _currentStep == 0 ? 'Datos Personales' : 'Seguridad',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          _currentStep == 0
-                              ? 'Cuéntanos un poco sobre ti'
-                              : 'Crea una contraseña segura',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Color.fromRGBO(100, 116, 139, 1),
-                          ),
-                        ),
-                        const SizedBox(height: 15),
-                        SingleChildScrollView(
-                          child: Form(
-                            key: _formKey,
-                            child: SizedBox(
-                              height: 340,
-                              child: PageView(
-                                controller: _pageController,
-                                physics: const NeverScrollableScrollPhysics(),
-                                onPageChanged: (index) {
-                                  setState(() {
-                                    _currentStep = index;
-                                  });
-                                },
-                                children: [
-                                  // Step 0: Personal Info
-                                  Column(
-                                    children: [
-                                      AuthErrorMessages(message: _errorMessage),
-                                      LabeledTextField(
-                                        fieldKey: 'name',
-                                        label: 'Nombre',
-                                        hint: 'Tus nombres',
-                                        controller: _nameController,
-                                        icon: const Icon(Icons.person_outlined),
-                                        errors: _errorMessages,
-                                        validator: (v) {
-                                          if (v == null || v.isEmpty) {
-                                            return 'Requerido';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                      LabeledTextField(
-                                        fieldKey: 'lastname',
-                                        label: 'Apellidos',
-                                        hint: 'Tus apellidos',
-                                        controller: _lastnameController,
-                                        icon: const Icon(Icons.person_outlined),
-                                        errors: _errorMessages,
-                                        validator: (v) {
-                                          if (v == null || v.isEmpty) {
-                                            return 'Requerido';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                      LabeledTextField(
-                                        fieldKey: 'email',
-                                        label: 'Correo electrónico',
-                                        hint: 'ejemplo@correo.com',
-                                        controller: _emailController,
-                                        icon: const Icon(Icons.email_outlined),
-                                        keyboardType:
-                                            TextInputType.emailAddress,
-                                        errors: _errorMessages,
-                                        validator: (v) {
-                                          if (v == null || v.isEmpty) {
-                                            return 'Por favor ingresa tu email';
-                                          }
-                                          if (!RegExp(
-                                            r'^[\w-.]+@([\w-]+\.)+[\w]{2,4}$',
-                                          ).hasMatch(v)) {
-                                            return 'Formato de correo inválido';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                      LabeledTextField(
-                                        fieldKey: 'phone',
-                                        label: 'Teléfono (opcional)',
-                                        hint: '+56 9 1234 5678',
-                                        controller: _phoneController,
-                                        icon: const Icon(Icons.phone_outlined),
-                                        keyboardType: TextInputType.phone,
-                                      ),
-                                    ],
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 25),
+                                child: Text(
+                                  'Crear Cuenta',
+                                  style: TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w900,
                                   ),
-                                  // Step 1: Security
-                                  Column(
+                                ),
+                              ),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 25),
+                                child: Text(
+                                  'Únete a la gestión transparente de fondos grupales',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Color.fromRGBO(100, 116, 139, 1),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                            ],
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+
+                  Flexible(
+                    child: SlideTransition(
+                      position: _offsetAnimation,
+                      child: Container(
+                        padding: const EdgeInsets.only(
+                          left: 25,
+                          right: 25,
+                          top: 25,
+                          bottom: 5,
+                        ),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(16),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                              offset: Offset(0, -3),
+                            ),
+                          ],
+                        ),
+                        child: SafeArea(
+                          top: false,
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: List.generate(2, (index) {
+                                  Color color;
+                                  if (index < _currentStep) {
+                                    color = Colors.green;
+                                  } else if (index == _currentStep) {
+                                    color = Colors.blue;
+                                  } else {
+                                    color = Colors.grey.shade300;
+                                  }
+                                  return Container(
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 3,
+                                    ),
+                                    width: 12,
+                                    height: 12,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: color,
+                                    ),
+                                  );
+                                }),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                _currentStep == 0
+                                    ? 'Datos Personales'
+                                    : 'Seguridad',
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                _currentStep == 0
+                                    ? 'Cuéntanos un poco sobre ti'
+                                    : 'Crea una contraseña segura',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Color.fromRGBO(100, 116, 139, 1),
+                                ),
+                              ),
+                              const SizedBox(height: 15),
+                              Expanded(
+                                child: Form(
+                                  key: _formKey,
+                                  child: PageView(
+                                    controller: _pageController,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    onPageChanged: (index) {
+                                      setState(() {
+                                        _currentStep = index;
+                                      });
+                                    },
                                     children: [
-                                      AuthErrorMessages(message: _errorMessage),
-                                      LabeledTextField(
-                                        fieldKey: 'password',
-                                        label: 'Contraseña',
-                                        hint: 'Ingresa tu contraseña',
-                                        isPassword: true,
-                                        controller: _passwordController,
-                                        icon: const Icon(Icons.lock_outlined),
-                                        errors: _errorMessages,
-                                        validator: (v) {
-                                          if (v == null || v.isEmpty) {
-                                            return 'Requerido';
-                                          }
-                                          if (v.length < 6) {
-                                            return 'Mínimo 6 caracteres';
-                                          }
-                                          if (!RegExp(r'[A-Z]').hasMatch(v)) {
-                                            return 'Debe contener al menos una letra mayúscula';
-                                          }
-                                          if (!RegExp(r'[0-9]').hasMatch(v)) {
-                                            return 'Debe contener al menos un número';
-                                          }
-                                          return null;
-                                        },
-                                        onChanged: (val) {
-                                          setState(() {
-                                            _passwordValue = val;
-                                          });
-                                        },
-                                      ),
-                                      LabeledTextField(
-                                        fieldKey: 'confirm_password',
-                                        label: 'Confirmar contraseña',
-                                        hint: 'Repite la contraseña',
-                                        isPassword: true,
-                                        controller: _confirmPasswordController,
-                                        icon: const Icon(Icons.lock_outlined),
-                                        errors: _errorMessages,
-                                        validator: (v) {
-                                          if (v == null || v.isEmpty) {
-                                            return 'Requerido';
-                                          }
-                                          if (v != _passwordController.text) {
-                                            return 'Las contraseñas no coinciden';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey.shade100,
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
+                                      // Step 0: Personal Info
+                                      SingleChildScrollView(
                                         child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
                                           children: [
-                                            Text(
-                                              'Tu contraseña debe tener:',
-                                              style: TextStyle(
-                                                color: Color.fromRGBO(
-                                                  55,
-                                                  65,
-                                                  81,
-                                                  1,
-                                                ),
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w600,
-                                              ),
+                                            AuthErrorMessages(
+                                              message: _errorMessage,
                                             ),
-                                            SizedBox(height: 8),
-                                            Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                _buildPasswordRule(
-                                                  "Al menos 6 caracteres",
-                                                  _passwordValue.length >= 6,
-                                                ),
-                                                _buildPasswordRule(
-                                                  "Una letra mayúscula",
-                                                  _passwordValue.contains(
-                                                    RegExp(r'[A-Z]'),
+                                            LabeledTextField(
+                                              fieldKey: 'name',
+                                              label: 'Nombre',
+                                              hint: 'Tus nombres',
+                                              controller: _nameController,
+                                              icon: const Icon(
+                                                Icons.person_outlined,
+                                              ),
+                                              errors: _errorMessages,
+                                              validator: (v) {
+                                                if (v == null ||
+                                                    v.trim().isEmpty) {
+                                                  return 'Requerido';
+                                                }
+                                                return null;
+                                              },
+                                            ),
+                                            LabeledTextField(
+                                              fieldKey: 'lastname',
+                                              label: 'Apellidos',
+                                              hint: 'Tus apellidos',
+                                              controller: _lastnameController,
+                                              icon: const Icon(
+                                                Icons.person_outlined,
+                                              ),
+                                              errors: _errorMessages,
+                                              validator: (v) {
+                                                if (v == null ||
+                                                    v.trim().isEmpty) {
+                                                  return 'Requerido';
+                                                }
+                                                return null;
+                                              },
+                                            ),
+                                            LabeledTextField(
+                                              fieldKey: 'email',
+                                              label: 'Correo electrónico',
+                                              hint: 'ejemplo@correo.com',
+                                              controller: _emailController,
+                                              icon: const Icon(
+                                                Icons.email_outlined,
+                                              ),
+                                              keyboardType:
+                                                  TextInputType.emailAddress,
+                                              errors: _errorMessages,
+                                              validator: (v) {
+                                                if (v == null ||
+                                                    v.trim().isEmpty) {
+                                                  return 'Por favor ingresa tu email';
+                                                }
+                                                if (!RegExp(
+                                                  r'^[\w-.]+@([\w-]+\.)+[\w]{2,4}$',
+                                                ).hasMatch(v)) {
+                                                  return 'Formato de correo inválido';
+                                                }
+                                                return null;
+                                              },
+                                            ),
+                                            LabeledTextField(
+                                              fieldKey: 'phone',
+                                              label: 'Teléfono (opcional)',
+                                              hint: '+56 9 1234 5678',
+                                              controller: _phoneController,
+                                              icon: const Icon(
+                                                Icons.phone_outlined,
+                                              ),
+                                              keyboardType: TextInputType.phone,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      // Step 1: Security
+                                      SingleChildScrollView(
+                                        child: Column(
+                                          children: [
+                                            AuthErrorMessages(
+                                              message: _errorMessage,
+                                            ),
+                                            LabeledTextField(
+                                              fieldKey: 'password',
+                                              label: 'Contraseña',
+                                              hint: 'Ingresa tu contraseña',
+                                              isPassword: true,
+                                              controller: _passwordController,
+                                              icon: const Icon(
+                                                Icons.lock_outlined,
+                                              ),
+                                              errors: _errorMessages,
+                                              validator: (v) {
+                                                if (v == null ||
+                                                    v.trim().isEmpty) {
+                                                  return 'Requerido';
+                                                }
+                                                if (v.length < 6) {
+                                                  return 'Mínimo 6 caracteres';
+                                                }
+                                                if (!RegExp(
+                                                  r'[A-Z]',
+                                                ).hasMatch(v)) {
+                                                  return 'Debe contener al menos una letra mayúscula';
+                                                }
+                                                if (!RegExp(
+                                                  r'[0-9]',
+                                                ).hasMatch(v)) {
+                                                  return 'Debe contener al menos un número';
+                                                }
+                                                return null;
+                                              },
+                                              onChanged: (val) {
+                                                setState(() {
+                                                  _passwordValue = val;
+                                                });
+                                              },
+                                            ),
+                                            LabeledTextField(
+                                              fieldKey: 'confirm_password',
+                                              label: 'Confirmar contraseña',
+                                              hint: 'Repite la contraseña',
+                                              isPassword: true,
+                                              controller:
+                                                  _confirmPasswordController,
+                                              icon: const Icon(
+                                                Icons.lock_outlined,
+                                              ),
+                                              errors: _errorMessages,
+                                              validator: (v) {
+                                                if (v == null ||
+                                                    v.trim().isEmpty) {
+                                                  return 'Requerido';
+                                                }
+                                                if (v !=
+                                                    _passwordController.text) {
+                                                  return 'Las contraseñas no coinciden';
+                                                }
+                                                return null;
+                                              },
+                                            ),
+                                            const SizedBox(height: 10),
+                                            Container(
+                                              width: double.infinity,
+                                              padding: const EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey.shade100,
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    'Tu contraseña debe tener:',
+                                                    style: TextStyle(
+                                                      color: Color.fromRGBO(
+                                                        55,
+                                                        65,
+                                                        81,
+                                                        1,
+                                                      ),
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
                                                   ),
-                                                ),
-                                                _buildPasswordRule(
-                                                  "Un número",
-                                                  _passwordValue.contains(
-                                                    RegExp(r'[0-9]'),
+                                                  SizedBox(height: 8),
+                                                  Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      _buildPasswordRule(
+                                                        "Al menos 6 caracteres",
+                                                        _passwordValue.length >=
+                                                            6,
+                                                      ),
+                                                      _buildPasswordRule(
+                                                        "Una letra mayúscula",
+                                                        _passwordValue.contains(
+                                                          RegExp(r'[A-Z]'),
+                                                        ),
+                                                      ),
+                                                      _buildPasswordRule(
+                                                        "Un número",
+                                                        _passwordValue.contains(
+                                                          RegExp(r'[0-9]'),
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
-                                                ),
-                                              ],
+                                                ],
+                                              ),
                                             ),
                                           ],
                                         ),
                                       ),
                                     ],
                                   ),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  if (_currentStep == 1)
+                                    OutlinedButton(
+                                      onPressed: _previousStep,
+                                      style: ElevatedButton.styleFrom(
+                                        fixedSize: const Size(
+                                          double.infinity,
+                                          55,
+                                        ),
+                                        side: BorderSide(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                          width: 2,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: const [
+                                          Icon(Icons.navigate_before_outlined),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            'Atrás',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  if (_currentStep == 1)
+                                    const SizedBox(width: 10),
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      onPressed: _nextStep,
+                                      style: ElevatedButton.styleFrom(
+                                        fixedSize: const Size(
+                                          double.infinity,
+                                          55,
+                                        ),
+                                        backgroundColor: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            _currentStep == 0
+                                                ? 'Siguiente'
+                                                : 'Registrar',
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          const Icon(
+                                            Icons.navigate_next_outlined,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
                                 ],
                               ),
-                            ),
+                              const SizedBox(height: 10),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            if (_currentStep == 1)
-                              OutlinedButton(
-                                onPressed: _previousStep,
-                                style: ElevatedButton.styleFrom(
-                                  fixedSize: const Size(double.infinity, 55),
-                                  side: BorderSide(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                    width: 2,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: const [
-                                    Icon(Icons.navigate_before_outlined),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'Atrás',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            if (_currentStep == 1) const SizedBox(width: 10),
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: _nextStep,
-                                style: ElevatedButton.styleFrom(
-                                  fixedSize: const Size(double.infinity, 55),
-                                  backgroundColor: Theme.of(
-                                    context,
-                                  ).colorScheme.primary,
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      _currentStep == 0
-                                          ? 'Siguiente'
-                                          : 'Registrar',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.navigate_next_outlined),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                      ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
+              if (_isLoading) const CustomLoader(),
             ],
           ),
-          if (_isLoading) const CustomLoader(),
-        ],
+        ),
       ),
     );
   }

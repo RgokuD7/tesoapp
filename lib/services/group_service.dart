@@ -4,6 +4,7 @@ import '../models/group.dart';
 
 class GroupService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   final String collectionName = 'groups';
 
   // --- Obtener un grupo por ID ---
@@ -67,7 +68,7 @@ class GroupService {
 
   // Generador de código aleatorio
   String _generateCode({int length = 8}) {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const chars = 'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789';
     final rand = Random.secure();
     return List.generate(
       length,
@@ -93,5 +94,33 @@ class GroupService {
     } while (exists);
 
     return code;
+  }
+
+  // --- Obtener un grupo por CODE ---
+  Future<Group?> getGroupByCode(String code) async {
+    final snapshot = await _firestore
+        .collection(collectionName)
+        .where('code', isEqualTo: code)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      return Group.fromMap(snapshot.docs.first.data());
+    }
+    return null;
+  }
+
+  // --- Agregar Usuario a grupo ---
+  Future<void> addUserToGroup(String groupId, String userId) async {
+    await _firestore.collection(collectionName).doc(groupId).update({
+      'members': FieldValue.arrayUnion([userId]),
+    });
+  }
+
+  // --- Eliminar Usuario de grupo ---
+  Future<void> removeUserFromGroup(String groupId, String userId) async {
+    await _firestore.collection(collectionName).doc(groupId).update({
+      'members': FieldValue.arrayRemove([userId]),
+    });
   }
 }

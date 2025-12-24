@@ -27,6 +27,10 @@ class UserNotifier extends StateNotifier<User?> {
     state = await _userService.getUser(id);
   }
 
+  Future<User?> getUser(String id) async {
+    return await _userService.getUser(id);
+  }
+
   Future<void> updateUser(User user) async {
     await _userService.updateUser(user);
     state = user;
@@ -45,10 +49,9 @@ class UserNotifier extends StateNotifier<User?> {
   }
 
   Future<void> removeGroup(String groupId) async {
-  if (state == null) return;
-  final updatedGroups = state!.groups.where((id) => id != groupId).toList();
-  await _userService.removeGroupFromUser(state!.id, groupId);
-  state = state!.copyWith(groups: updatedGroups);
-}
-
+    if (state == null) return;
+    final updatedGroups = state!.groups.where((id) => id != groupId).toList();
+    await _userService.removeGroupFromUser(state!.id, groupId);
+    state = state!.copyWith(groups: updatedGroups);
+  }
 }

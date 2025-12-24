@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+
+import '../utils/formatters.dart';
 
 class LabeledTextField extends StatefulWidget {
   final String fieldKey;
@@ -15,6 +19,8 @@ class LabeledTextField extends StatefulWidget {
   final Map<String?, String?> errors;
   final Function(String)? onChanged;
   final bool isCurrency;
+  final String? allowedChars; // Regex como string, ej: r'[A-Z0-9]'
+  final int? maxLength;
 
   const LabeledTextField({
     super.key,
@@ -31,6 +37,8 @@ class LabeledTextField extends StatefulWidget {
     this.errors = const {},
     this.onChanged,
     this.isCurrency = false,
+    this.allowedChars,
+    this.maxLength,
   });
 
   @override
@@ -45,11 +53,15 @@ class _LabeledTextFieldState extends State<LabeledTextField> {
     super.initState();
     _obscureText = widget.isPassword;
 
-    // Si es currency, formateamos el valor inicial
     if (widget.isCurrency && widget.controller.text.isNotEmpty) {
-      widget.controller.text = _formatCurrency(
-        widget.controller.text.replaceAll(RegExp(r'[^0-9]'), ''),
-      );
+      try {
+        final number = int.parse(
+          widget.controller.text.replaceAll(RegExp(r'[^0-9]'), ''),
+        );
+        widget.controller.text = Formatters.currencyCLP(number);
+      } catch (_) {
+        widget.controller.text = '';
+      }
     }
   }
 
@@ -65,6 +77,32 @@ class _LabeledTextFieldState extends State<LabeledTextField> {
       customPattern: '¤#,##0',
     );
     return formatter.format(number);
+  }
+
+  TextInputFormatter? _buildFormatter() {
+    if (widget.allowedChars != null) {
+      final regExp = RegExp(widget.allowedChars!);
+      return TextInputFormatter.withFunction((oldValue, newValue) {
+        // Filtrar caracteres permitidos y convertir a mayúsculas
+        final filtered = newValue.text
+            .toUpperCase()
+            .split('')
+            .where((c) => regExp.hasMatch(c))
+            .join();
+
+        // Limitar longitud si se indicó
+        final text =
+            widget.maxLength != null && filtered.length > widget.maxLength!
+            ? filtered.substring(0, widget.maxLength)
+            : filtered;
+
+        return TextEditingValue(
+          text: text,
+          selection: TextSelection.collapsed(offset: text.length),
+        );
+      });
+    }
+    return null;
   }
 
   @override
@@ -88,7 +126,6 @@ class _LabeledTextFieldState extends State<LabeledTextField> {
           ),
           const SizedBox(height: 4),
           TextFormField(
-            key: Key(widget.fieldKey),
             controller: widget.controller,
             keyboardType: widget.isCurrency
                 ? TextInputType.number
@@ -110,6 +147,9 @@ class _LabeledTextFieldState extends State<LabeledTextField> {
               }
               if (widget.onChanged != null) widget.onChanged!(val);
             },
+            inputFormatters: [
+              if (widget.allowedChars != null) _buildFormatter()!,
+            ],
             decoration: InputDecoration(
               errorStyle: const TextStyle(fontSize: 0),
               prefixIcon: widget.icon,
@@ -137,7 +177,7 @@ class _LabeledTextFieldState extends State<LabeledTextField> {
                 if (states.contains(WidgetState.error) || hasErrors) {
                   return const Color.fromRGBO(254, 242, 242, 1);
                 }
-                return const Color.fromRGBO(243, 244, 246, 1);
+                return Colors.white;
               }),
               hintText: widget.hint,
               hintStyle: const TextStyle(
