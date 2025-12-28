@@ -1,3 +1,4 @@
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -167,21 +168,20 @@ class _MembersPageState extends ConsumerState<MembersPage> {
             const SizedBox(height: 12),
             if (code.isNotEmpty)
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.grey.shade200),
                 ),
-                child: const Column(
-                  children: [
-                    Icon(Icons.qr_code_2_rounded, size: 60, color: Colors.grey),
-                    SizedBox(height: 8),
-                    Text(
-                      "QR en mantenimiento",
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
+                child: SizedBox(
+                  width: 200,
+                  height: 200,
+                  child: QrImageView(
+                    data: code,
+                    version: QrVersions.auto,
+                    backgroundColor: Colors.white,
+                  ),
                 ),
               )
             else

@@ -11,6 +11,8 @@ import 'package:intl/intl.dart';
 import '../providers/user_provider.dart';
 import '../providers/group_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../models/group.dart';
 import '../models/goal.dart';
 import '../models/category.dart';
@@ -48,6 +50,51 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage>
   final _currentAmountController = TextEditingController();
 
   // Dentro del State de tu StatefulWidget
+  Future<void> _scanQRCode() async {
+    try {
+      FocusScope.of(context).unfocus();
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) {
+            // Controlador para gestionar manualmente la cámara
+            final controller = MobileScannerController();
+            return Scaffold(
+              appBar: AppBar(title: const Text("Escanear QR")),
+              body: MobileScanner(
+                controller: controller,
+                onDetect: (capture) {
+                  final List<Barcode> barcodes = capture.barcodes;
+                  for (final barcode in barcodes) {
+                    if (barcode.rawValue != null) {
+                      // IMPORTANTE: Detenemos la cámara antes de salir
+                      controller.stop();
+                      Navigator.pop(context, barcode.rawValue);
+                      break;
+                    }
+                  }
+                },
+              ),
+            );
+          },
+        ),
+      );
+
+      if (!mounted) return;
+
+      // Esperamos un poco para que la UI se recupere del cierre de cámara
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      if (mounted && result != null && result is String) {
+        setState(() {
+          _groupCodeController.text = result;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error QR: $e");
+    }
+  }
+
   String _getTitle() {
     if (_currentStep == 0) {
       return '¿Cuál es tu rol?';
@@ -242,7 +289,9 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage>
       final userNotifier = ref.read(userProvider.notifier);
       await userNotifier.addGroup(group.id);
       setState(() => _group = group);
-      _pageController.jumpToPage(3);
+      setState(() => _group = group);
+      // Salto al índice 2 porque ahora la lista de páginas es dinámica
+      _pageController.jumpToPage(2);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -263,8 +312,7 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage>
         return;
       }
       setState(() {
-        _errorMessage =
-            ""; // Limpiar el mensaje de error si se selecciona un rol
+        _errorMessage = "";
         _currentStep++;
       });
       _pageController.nextPage(
@@ -300,6 +348,15 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage>
         }
       }
     } else if (_currentStep == 2) {
+      // Caso Miembro: Ya está en pantalla de éxito (índice 2), finalizar.
+      if (_selectedRole == 'member') {
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/index', (route) => false);
+        return;
+      }
+
+      // Caso Admin: Validar estado inicial y crear grupo
       if (_selectedInitialState == null) {
         setState(() {
           _errorMessage =
@@ -308,13 +365,12 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage>
       } else {
         _adminSubmit();
         setState(() {
-          _errorMessage =
-              ""; // Limpiar el mensaje de error si se selecciona un rol
-          _currentStep++;
+          _errorMessage = "";
         });
       }
     } else if (_currentStep == 3) {
-      Navigator.pushReplacementNamed(context, "/");
+      // Caso Admin: Ya está en pantalla de éxito (índice 3), finalizar.
+      Navigator.of(context).pushNamedAndRemoveUntil('/index', (route) => false);
     }
   }
 
@@ -664,6 +720,12 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage>
                                                 controller:
                                                     _groupCodeController,
                                                 icon: const Icon(Icons.tag),
+                                                suffix: IconButton(
+                                                  icon: const Icon(
+                                                    Icons.qr_code_scanner,
+                                                  ),
+                                                  onPressed: _scanQRCode,
+                                                ),
                                                 allowedChars: r'[A-Z0-9]',
                                                 maxLength: 8,
                                                 validator: (v) {
@@ -842,89 +904,90 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage>
                                         ),
                                       ),
                                     ),
-                                    // Step 2 Fondo Inicial
-                                    SingleChildScrollView(
-                                      child: Column(
-                                        children: [
-                                          Text(
-                                            "Estado Inicial",
-                                            style: TextStyle(
-                                              fontSize: 24,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color.fromRGBO(
-                                                30,
-                                                41,
-                                                59,
-                                                1,
+                                    // Step 2 Fondo Inicial (Solo Admin)
+                                    if (_selectedRole == "admin")
+                                      SingleChildScrollView(
+                                        child: Column(
+                                          children: [
+                                            Text(
+                                              "Estado Inicial",
+                                              style: TextStyle(
+                                                fontSize: 24,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color.fromRGBO(
+                                                  30,
+                                                  41,
+                                                  59,
+                                                  1,
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          SizedBox(height: 8),
-                                          Text(
-                                            "¿Como esta la tesoreria actualmente?",
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Color.fromRGBO(
-                                                100,
-                                                116,
-                                                139,
-                                                1,
+                                            SizedBox(height: 8),
+                                            Text(
+                                              "¿Como esta la tesoreria actualmente?",
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: Color.fromRGBO(
+                                                  100,
+                                                  116,
+                                                  139,
+                                                  1,
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          SizedBox(height: 24),
-                                          if (_errorMessage.isNotEmpty)
-                                            AuthErrorMessages(
-                                              message: _errorMessage,
-                                            ),
-                                          SizedBox(height: 8),
-                                          _buildInitialStateCard(
-                                            initialState: "without_funds",
-                                            icon: FontAwesomeIcons
-                                                .creativeCommonsZero,
-                                            iconColor: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                            title: "Empezamos desde cero",
-                                            description:
-                                                "Aun no hemos agregado dinero, comenzaremos ahora",
-                                          ),
-                                          SizedBox(height: 16),
-                                          _buildInitialStateCard(
-                                            initialState: "with_funds",
-                                            icon: FontAwesomeIcons.sackDollar,
-                                            iconColor: Colors.green.shade600,
-                                            title: "Ya tenemos dinero",
-                                            description:
-                                                "Ya llevamos tiempo juntando y queremos registrar el monto actual.",
-                                          ),
-                                          SizedBox(height: 16),
-                                          if (_selectedInitialState ==
-                                              "with_funds")
-                                            LabeledTextField(
-                                              fieldKey: 'current_amount',
-                                              label:
-                                                  '¿Cuanto dinero tienen actualmente?',
-                                              hint: '0',
-                                              autofocus: true,
-                                              controller:
-                                                  _currentAmountController,
-                                              icon: const Icon(
-                                                Icons.attach_money,
+                                            SizedBox(height: 24),
+                                            if (_errorMessage.isNotEmpty)
+                                              AuthErrorMessages(
+                                                message: _errorMessage,
                                               ),
-                                              keyboardType:
-                                                  TextInputType.number,
-                                              isCurrency: true,
-                                              validator: (v) {
-                                                if (v == null ||
-                                                    v.trim().isEmpty)
-                                                  return '';
-                                                return null;
-                                              },
+                                            SizedBox(height: 8),
+                                            _buildInitialStateCard(
+                                              initialState: "without_funds",
+                                              icon: FontAwesomeIcons
+                                                  .creativeCommonsZero,
+                                              iconColor: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                              title: "Empezamos desde cero",
+                                              description:
+                                                  "Aun no hemos agregado dinero, comenzaremos ahora",
                                             ),
-                                        ],
+                                            SizedBox(height: 16),
+                                            _buildInitialStateCard(
+                                              initialState: "with_funds",
+                                              icon: FontAwesomeIcons.sackDollar,
+                                              iconColor: Colors.green.shade600,
+                                              title: "Ya tenemos dinero",
+                                              description:
+                                                  "Ya llevamos tiempo juntando y queremos registrar el monto actual.",
+                                            ),
+                                            SizedBox(height: 16),
+                                            if (_selectedInitialState ==
+                                                "with_funds")
+                                              LabeledTextField(
+                                                fieldKey: 'current_amount',
+                                                label:
+                                                    '¿Cuanto dinero tienen actualmente?',
+                                                hint: '0',
+                                                autofocus: true,
+                                                controller:
+                                                    _currentAmountController,
+                                                icon: const Icon(
+                                                  Icons.attach_money,
+                                                ),
+                                                keyboardType:
+                                                    TextInputType.number,
+                                                isCurrency: true,
+                                                validator: (v) {
+                                                  if (v == null ||
+                                                      v.trim().isEmpty)
+                                                    return '';
+                                                  return null;
+                                                },
+                                              ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
                                     // Step 3: Grupo creado
                                     if (_selectedRole == "admin")
                                       SingleChildScrollView(
@@ -1009,31 +1072,36 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage>
                                               ),
                                             ),
                                             const SizedBox(height: 32),
-                                            // Contenedor futuro para QR
-                                            /* Container(
-                                              width: 180,
-                                              height: 180,
-                                              decoration: BoxDecoration(
-                                                color: Colors.grey.shade100,
-                                                borderRadius:
-                                                    BorderRadius.circular(16),
-                                                border: Border.all(
-                                                  color: Colors.grey.shade300,
+                                            // Contenedor para QR
+                                            if (_group != null)
+                                              Container(
+                                                padding: const EdgeInsets.all(
+                                                  12,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                  border: Border.all(
+                                                    color: Colors.grey.shade300,
+                                                  ),
+                                                ),
+                                                child: SizedBox(
+                                                  width: 180,
+                                                  height: 180,
+                                                  child: QrImageView(
+                                                    data: _group!.code,
+                                                    version: QrVersions.auto,
+                                                    backgroundColor:
+                                                        Colors.white,
+                                                  ),
                                                 ),
                                               ),
-                                              child: const Center(
-                                                child: Icon(
-                                                  Icons.qr_code_2,
-                                                  size: 80,
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-                                            ),
                                             const SizedBox(height: 24),
-                                            Text(
+                                            const Text(
                                               "Comparte este código o escanea el QR para invitar a nuevos miembros",
                                               textAlign: TextAlign.center,
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 14,
                                                 color: Color.fromRGBO(
                                                   100,
@@ -1042,7 +1110,7 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage>
                                                   1,
                                                 ),
                                               ),
-                                            ), */
+                                            ),
                                           ],
                                         ),
                                       ),
@@ -1132,40 +1200,6 @@ class _RoleSelectionPageState extends ConsumerState<RoleSelectionPage>
                                               ),
                                             ),
                                             const SizedBox(height: 32),
-                                            // Contenedor futuro para QR
-                                            /* Container(
-                                              width: 180,
-                                              height: 180,
-                                              decoration: BoxDecoration(
-                                                color: Colors.grey.shade100,
-                                                borderRadius:
-                                                    BorderRadius.circular(16),
-                                                border: Border.all(
-                                                  color: Colors.grey.shade300,
-                                                ),
-                                              ),
-                                              child: const Center(
-                                                child: Icon(
-                                                  Icons.qr_code_2,
-                                                  size: 80,
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 24),
-                                            Text(
-                                              "Comparte este código o escanea el QR para invitar a nuevos miembros",
-                                              textAlign: TextAlign.center,
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                color: Color.fromRGBO(
-                                                  100,
-                                                  116,
-                                                  139,
-                                                  1,
-                                                ),
-                                              ),
-                                            ), */
                                           ],
                                         ),
                                       ),

@@ -21,6 +21,7 @@ class LabeledTextField extends StatefulWidget {
   final bool isCurrency;
   final String? allowedChars; // Regex como string, ej: r'[A-Z0-9]'
   final int? maxLength;
+  final Widget? suffix;
 
   const LabeledTextField({
     super.key,
@@ -39,6 +40,7 @@ class LabeledTextField extends StatefulWidget {
     this.isCurrency = false,
     this.allowedChars,
     this.maxLength,
+    this.suffix,
   });
 
   @override
@@ -170,7 +172,7 @@ class _LabeledTextFieldState extends State<LabeledTextField> {
                         },
                       ),
                     )
-                  : null,
+                  : widget.suffix,
               suffixIconColor: const Color.fromRGBO(100, 116, 139, 1),
               filled: true,
               fillColor: WidgetStateColor.resolveWith((states) {
